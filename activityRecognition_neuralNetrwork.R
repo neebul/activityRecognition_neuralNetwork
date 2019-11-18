@@ -13,34 +13,19 @@ setwd('your_working_directory')
 
 # Load the data
 df <- read_feather('your_file') %>% 
-  filter(child == 1) %>% 
-  filter(setting == "lab") %>% 
-  filter(activity_id != "Cycling") %>% 
-  mutate(activity_id = fct_drop(activity_id)) %>% 
-  filter(id != "C007")
+  mutate(activity_column = fct_drop(activity_column))
 
-data_lab <- df_lab %>% select(-timestamp, -child, -setting)
+data <- df %>% select(-notXorYcategory, -notXorYcategory)
 
 
 
-# Load the free-living data -----------------------------------------------
-df_free <- read_feather('Validation/data/data_all.feather') %>% 
-  filter(child == 1) %>% 
-  filter(setting == "free") %>% 
-  filter(activity_id != "Cycling") %>% 
-  mutate(activity_id = fct_drop(activity_id)) %>% 
-  filter(id != "C007")
+# Create evaluation variable 
+evaluation <- matrix(0, nrow = length(unique(data$id)), ncol = 1)
 
-data_free <- df_free %>% select(-timestamp, -child, -setting)
-
-
-
-# Create evaluation variable ----------------------------------------------
-evaluation <- matrix(0, nrow = length(unique(data_free$id)), ncol = 1)
-step <- 0
 
 
 # Create, train and evaluate the models -------------------
+step <- 0
 
 for (i in unique(data_free$id)) {
   
