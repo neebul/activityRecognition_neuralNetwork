@@ -1,4 +1,4 @@
-# Libraries needed and working directory --------------------------------------------------------
+# Libraries needed and working directory 
 library(keras)
 library(tidyverse)
 library(feather)
@@ -7,12 +7,12 @@ library(fastDummies)
 library(e1071)
 library(plyr)
 
-setwd('D:/PreLab/NewZealand/data_algorithms')
+setwd('your_working_directory')
 
 
 
-# Load the lab data -------------------------------------------------------
-df_lab <- read_feather('Validation/data/data_all.feather') %>% 
+# Load the data
+df <- read_feather('your_file') %>% 
   filter(child == 1) %>% 
   filter(setting == "lab") %>% 
   filter(activity_id != "Cycling") %>% 
