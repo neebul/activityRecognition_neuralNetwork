@@ -24,69 +24,54 @@ evaluation <- matrix(0, nrow = length(unique(data$id)), ncol = 1)
 
 
 
-# Create, train and evaluate the models -------------------
+# Create, train and evaluate the models
 step <- 0
 
-for (i in unique(data_free$id)) {
+for (i in unique(data$id)) {
   
   step <- step + 1
   cat('Testing step:', step, " ")
   
   
-  # Select train and test data in the free-living data ----------------------
-  free_train <- data_free %>% filter(id != i) %>% select(-id)
-  free_test <- data_free %>% filter(id == i) %>% select(-id)
-  
-  data_train <- bind_rows(data_lab %>% select(-id), free_train)
+  # Select train and test data
+  train <- data %>% filter(id != i) %>% select(-id)
+  test <- data %>% filter(id == i) %>% select(-id)
   
   
-  # Select x and y data -----------------------------------------------------
-  x_lab <- data_lab[, 3:ncol(data_lab)]
-  y_lab <- data_lab[, 2]
+  # Select x and y data
+  x_train <- train[, 2:ncol(train)]
+  y_train <- train[, 1]
   
-  x_free_train <- free_train[, 2:ncol(free_train)]
-  y_free_train <- free_train[, 1]
-  x_free_test <- free_test[, 2:ncol(free_test)]
-  y_free_test <- free_test[, 1]
+  x_test <- test[, 2:ncol(test)]
+  y_test <- test[, 1]
   
   
-  # Reshape y as binary elements (factor -> binary) -------------------------
-  y_lab <- dummy_cols(y_lab, select_columns = "activity_id")
-  y_lab <- y_lab[,2:ncol(y_lab)]
+  # Reshape y as binary elements (factor -> binary)
+  y_train <- dummy_cols(y_train, select_columns = "activity")
+  y_train <- y_train[, 2:ncol(y_train)]
   
-  y_free_train <- dummy_cols(y_free_train, select_columns = "activity_id")
-  y_free_train <- y_free_train[,2:ncol(y_free_train)]
-  y_free_test <- dummy_cols(y_free_test, select_columns = "activity_id")
-  y_free_test <- y_free_test[,2:ncol(y_free_test)]
+  y_test <- dummy_cols(y_test, select_columns = "activity")
+  y_test <- y_test[, 2:ncol(y_test)]
   
   
-  # Transform every variable into "simple" matrices ---------------------------
-  x_lab <- as.matrix(x_lab)
-  dimnames(x_lab) <- NULL
-  y_lab <- as.matrix(y_lab)
-  colnames(y_lab) <- NULL
+  # Transform every variable into clean matrices 
+  x_train <- as.matrix(x_train)
+  dimnames(x_train) <- NULL
   
-  x_free_train <- as.matrix(x_free_train)
-  dimnames(x_free_train) <- NULL
-  y_free_train <- as.matrix(y_free_train)
-  colnames(y_free_train) <- NULL
-  x_free_test <- as.matrix(x_free_test)
-  dimnames(x_free_test) <- NULL
-  y_free_test <- as.matrix(y_free_test)
-  colnames(y_free_test) <- NULL
+  y_train <- as.matrix(y_train)
+  dimnames(y_train) <- NULL
   
+  x_test <- as.matrix(x_test)
+  dimnames(x_test) <- NULL
   
-  # Gather lab and free-living train data -----------------------------------
-  x_train <- rbind(x_lab, x_free_train)
-  y_train <- rbind(y_lab, y_free_train)
+  y_test <- as.matrix(y_test)
+  dimnames(y_test) <- NULL
   
-  x_test <- x_free_test
-  y_test <- y_free_test
-  
-  
-  # Feature scaling -------------------------------------------
+ 
+  # Feature scaling 
   mean_train <- matrix(0, nrow = ncol(x_train), ncol = 1)
   sd_train <- matrix(0, nrow = ncol(x_train), ncol = 1)
+  
   for (i in 1:ncol(x_train)) {
     mean_train[i] <- mean(x_train[,i])
     sd_train[i] <- sd(x_train[,i])
@@ -96,17 +81,16 @@ for (i in unique(data_free$id)) {
     x_train[,i] <- (x_train[,i] - mean_train[i]) / sd_train[i]
   }
   
-  
   for (i in 1:ncol(x_test)) {
     x_test[,i] <- (x_test[,i] - mean_train[i]) / sd_train[i]
   }
   
   
   
-  # NN - Create the model --------------------------------------------------------
+  # NN - Create the model 
   model.nn <- keras_model_sequential() 
   model.nn %>% 
-    layer_dense(units = 50, activation = 'relu', input_shape = c(141), kernel_regularizer = regularizer_l2(l = 0)) %>% 
+    layer_dense(units = 50, activation = 'relu', input_shape = c(number_of_features), kernel_regularizer = regularizer_l2(l = 0)) %>% 
     layer_dropout(rate = 0.5) %>% 
     layer_dense(units = 50, activation = 'relu', kernel_regularizer = regularizer_l2(l = 0)) %>%
     layer_dropout(rate = 0.5) %>%
@@ -120,7 +104,7 @@ for (i in unique(data_free$id)) {
   
   
   
-  # NN - Train the model ---------------------------------------------------------
+  # NN - Train the model 
   history <- model.nn %>% fit(
     x_train, y_train, 
     epochs = 30, 
@@ -131,7 +115,7 @@ for (i in unique(data_free$id)) {
   
   
   
-  # Observe probabilities of predicted outcomes -----------------------------
+  # Observe probabilities of predicted outcomes 
   y_nn_predict <- model.nn %>% predict(x_test)
   
   category_nn_predict <- max.col(y_nn_predict)
@@ -139,22 +123,16 @@ for (i in unique(data_free$id)) {
   category_nn_predict <- revalue(category_nn_predict, c("1"="Sitting", "2"="Lying", "3"="Standing", "4"="Walking", "5"="Running"))
   levels(category_nn_predict) <- c("Sitting", "Lying", "Standing", "Walking", "Running")
   
-
   category_test <- max.col(y_test)
   category_test <- as.factor(category_test)
   category_test <- revalue(category_test, c("1"="Sitting", "2"="Lying", "3"="Standing", "4"="Walking", "5"="Running"))
   levels(category_test) <- c("Sitting", "Lying", "Standing", "Walking", "Running")
   
-
-  accuracy_nn <- 1 - length(which(category_nn_predict != category_test)) / nrow(free_test)
+  accuracy_nn <- 1 - length(which(category_nn_predict != category_test)) / nrow(test)
  
   evaluation[step] <- accuracy_nn
   
-  
-#  errors_nn <- cbind(which(category_nn_predict != category_test), category_nn_predict[which(category_nn_predict != category_test)], category_test[which(category_nn_predict != category_test)], y_nn_predict[which(category_nn_predict != category_test),])
+  errors_nn <- cbind(which(category_nn_predict != category_test), category_nn_predict[which(category_nn_predict != category_test)], 
+                     category_test[which(category_nn_predict != category_test)], y_nn_predict[which(category_nn_predict != category_test),])
 
-  
-  # Create a file to save the data -----------------------------------------
-  #dir.create(sprintf("multi_classifier/%d", i))
-  
-}
+  }
