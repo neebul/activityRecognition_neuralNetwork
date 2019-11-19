@@ -120,13 +120,13 @@ for (i in unique(data$id)) {
   
   category_nn_predict <- max.col(y_nn_predict)
   category_nn_predict <- as.factor(category_nn_predict)
-  category_nn_predict <- revalue(category_nn_predict, c("1"="Sitting", "2"="Lying", "3"="Standing", "4"="Walking", "5"="Running"))
-  levels(category_nn_predict) <- c("Sitting", "Lying", "Standing", "Walking", "Running")
+  category_nn_predict <- revalue(category_nn_predict, c("1"="activity1", "2"="activity2", "3"="activity3", "4"="activity4", "5"="activity5"))
+  levels(category_nn_predict) <- c("activity1", "activity2", "activity3", "activity4", "activity5")
   
   category_test <- max.col(y_test)
   category_test <- as.factor(category_test)
-  category_test <- revalue(category_test, c("1"="Sitting", "2"="Lying", "3"="Standing", "4"="Walking", "5"="Running"))
-  levels(category_test) <- c("Sitting", "Lying", "Standing", "Walking", "Running")
+  category_test <- revalue(category_test, c("1"="activity1", "2"="activity2", "3"="activity3", "4"="activity4", "5"="activity5"))
+  levels(category_test) <- c("activity1", "activity2", "activity3", "activity4", "activity5")
   
   accuracy_nn <- 1 - length(which(category_nn_predict != category_test)) / nrow(test)
  
