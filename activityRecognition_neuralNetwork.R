@@ -12,7 +12,7 @@ setwd('your_working_directory')
 
 
 # Load the data
-df <- read_feather('your_file') %>% 
+df <- read_feather('your_file.feather') %>% 
   mutate(activity_column = fct_drop(activity_column))
 
 data <- df %>% select(-notXorYcategory, -notXorYcategory)
