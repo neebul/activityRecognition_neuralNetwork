@@ -9,4 +9,4 @@ Data is organized as follows:
 
 You will obtain as results: 
 - in 'evaluation', the accuracy of the predictions of the model for each subject
-- in 'errors_nn', the detail of each error made by the model: activity category wrongly predicted, true activity category, and the probabilities calculated for each category
+- in 'errors_nn', the detail of each error made by the model: index of the error, activity category wrongly predicted, true activity category, and the probabilities calculated for each category
