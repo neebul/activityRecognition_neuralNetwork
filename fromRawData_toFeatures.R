@@ -8,11 +8,11 @@ library(doParallel)
 library(dplyr)
 library(magicfor)
 
-setwd('your_working_directory')
 
 
 # Load the data
 data <- read.csv(file = 'your_file.csv', header = TRUE)
+
 
 
 # Assign filter 
@@ -21,7 +21,8 @@ f_g <- signal::butter(4, 0.02, type= "low")
 f_peak <- signal::butter(4, 0.06, type = "low")
 
 
-# Filter data
+
+# Filter data (b = back, t = thigh)
 b_x_noise = signal::filtfilt(f_noise, data$x_b)
 b_y_noise = signal::filtfilt(f_noise, data$y_b)	
 b_z_noise = signal::filtfilt(f_noise, data$z_b)
@@ -59,7 +60,8 @@ filtered_data <- data.frame(b_x_noise = b_x_noise,
                             stringsAsFactors = FALSE)
 
 
-# Create functions to deal with the peak values
+
+# Create functions to deal with peak values
 fft_f <- function(v){
   s <- signal::specgram(v, n=length(v), Fs=100)
   S <- abs(s$S)
@@ -79,29 +81,18 @@ find_peaks <- function(v, mindistance, minheight){
 }
 
 
-# Calculate features
-window_width <- size_of_your_windows
 
-step <- 0
+# Calculate features for each 5 seconds epoch (with 100 Hz accelerometer's data)
 magic_for(silent = TRUE)
 
+for (i in (1:nrow(data))) [500] {
 
-
-for (i in ((window_width/2) + 1):(nrow(filtered_data)-((window_width/2) + 1))) {
-
-
-  step <- step + 1
   if (step %% 10000 == 0)
-    cat('Step:', step, " ")
-  
-  
-  df <- filtered_data[(i-(window_width/2)):(i+(window_width/2)),]   # beginning and end moments don't respect the window width
+  cat('Step:', step, " ")
     
-    # information
-    index = df$index[(window_width/2) + 1]   # index
-    subject = df$subject[1]   # subject id
-    transition_noTransition = df$transition_noTransition[(window_width/2) + 1]   # transition = 1, no transition = 0
-    
+  df <- filtered_data[i:i+499, ]
+ 
+  
     # features 
     b_count = sum(df$b_vm_noise >= 1.2 | df$b_vm_noise <= 0.8)
     t_count = sum(df$t_vm_noise >= 1.2 | df$t_vm_noise <= 0.8)
@@ -263,38 +254,23 @@ for (i in ((window_width/2) + 1):(nrow(filtered_data)-((window_width/2) + 1))) {
     b_skew_y = e1071::skewness(df$b_y_g)
     b_skew_z = e1071::skewness(df$b_z_g)
     
-    put(index, subject, transition_noTransition, b_count, t_count, b_mean_x, b_mean_y, b_mean_z, t_mean_x, t_mean_y,
-        t_mean_z, b_mag_mean, t_mag_mean, b_sd_x, b_sd_y, b_sd_z, t_sd_x, t_sd_y, t_sd_z, b_mag_sd, t_mag_sd, b_coef_x,
-        b_coef_y, b_coef_z, b_mag_coef, t_coef_x, t_coef_y, t_coef_z, t_mag_coef, b_quan_25_x, b_quan_25_y, b_quan_25_z, 
-        t_quan_25_x, t_quan_25_y, t_quan_25_z, b_mag_quan_25, t_mag_quan_25, b_quan_50_x, b_quan_50_y, b_quan_50_z,
-        t_quan_50_x, t_quan_50_y, t_quan_50_z, b_mag_quan_50, t_mag_quan_50, b_quan_75_x, b_quan_75_y, b_quan_75_z, 
-        t_quan_75_x, t_quan_75_y, t_quan_75_z, b_mag_quan_75, t_mag_quan_75, b_min_x, b_min_y, b_min_z, t_min_x, t_min_y, 
-        t_min_z, b_mag_min, t_mag_min, b_max_x, b_max_y, b_max_z, t_max_x, t_max_y, t_max_z, b_mag_max, t_mag_max, 
-        corr_xTyT, corr_xTzT, corr_yTzT, corr_xByB, corr_xBzB, corr_yBzB, corr_xTxB, corr_xTyB, corr_xTzB, corr_yTxB, 
-        corr_yTyB, corr_yTzB, corr_zTxB, corr_zTyB, corr_zTzB, corr_mTmB, mean_xBxT, mean_yByT, mean_zBzT, mean_xByT,
-        mean_xBzT, mean_yBzT, mean_yBxT, mean_zBxT, mean_zByT, t_roll_mean, b_roll_mean, t_pitch_mean, b_pitch_mean, 
-        t_yaw_mean, b_yaw_mean, t_roll_sd, b_roll_sd, t_pitch_sd, b_pitch_sd, t_yaw_sd, b_yaw_sd, t_mean_g_x, t_mean_g_y, 
-        t_mean_g_z, b_mean_g_x, b_mean_g_y, b_mean_g_z, t_mag_g_mean, b_mag_g_mean, t_fft_freq_x, t_fft_freq_y, t_fft_freq_z, 
-        t_fft_pow_x, t_fft_pow_y, t_fft_pow_z, t_fft_mag_freq, t_fft_mag_pow, b_fft_freq_x, b_fft_freq_y, b_fft_freq_z, 
-        b_fft_pow_x, b_fft_pow_y, b_fft_pow_z, b_fft_mag_freq, b_fft_mag_pow, t_peaks, b_peaks, t_kurtosis_x, t_kurtosis_y, 
-        t_kurtosis_z, b_kurtosis_x, b_kurtosis_y, b_kurtosis_z, t_skew_x, t_skew_y, t_skew_z, b_skew_x, b_skew_y, b_skew_z) 
+    put(b_count, t_count, b_mean_x, b_mean_y, b_mean_z, t_mean_x, t_mean_y, t_mean_z, b_mag_mean, t_mag_mean, b_sd_x, 
+        b_sd_y, b_sd_z, t_sd_x, t_sd_y, t_sd_z, b_mag_sd, t_mag_sd, b_coef_x, b_coef_y, b_coef_z, b_mag_coef, t_coef_x, 
+        t_coef_y, t_coef_z, t_mag_coef, b_quan_25_x, b_quan_25_y, b_quan_25_z, t_quan_25_x, t_quan_25_y, t_quan_25_z, 
+        b_mag_quan_25, t_mag_quan_25, b_quan_50_x, b_quan_50_y, b_quan_50_z, t_quan_50_x, t_quan_50_y, t_quan_50_z, 
+        b_mag_quan_50, t_mag_quan_50, b_quan_75_x, b_quan_75_y, b_quan_75_z, t_quan_75_x, t_quan_75_y, t_quan_75_z, 
+        b_mag_quan_75, t_mag_quan_75, b_min_x, b_min_y, b_min_z, t_min_x, t_min_y, t_min_z, b_mag_min, t_mag_min, 
+        b_max_x, b_max_y, b_max_z, t_max_x, t_max_y, t_max_z, b_mag_max, t_mag_max, corr_xTyT, corr_xTzT, corr_yTzT, 
+        corr_xByB, corr_xBzB, corr_yBzB, corr_xTxB, corr_xTyB, corr_xTzB, corr_yTxB, corr_yTyB, corr_yTzB, corr_zTxB, 
+        corr_zTyB, corr_zTzB, corr_mTmB, mean_xBxT, mean_yByT, mean_zBzT, mean_xByT, mean_xBzT, mean_yBzT, mean_yBxT, 
+        mean_zBxT, mean_zByT, t_roll_mean, b_roll_mean, t_pitch_mean, b_pitch_mean, t_yaw_mean, b_yaw_mean, t_roll_sd, 
+        b_roll_sd, t_pitch_sd, b_pitch_sd, t_yaw_sd, b_yaw_sd, t_mean_g_x, t_mean_g_y, t_mean_g_z, b_mean_g_x, b_mean_g_y, 
+        b_mean_g_z, t_mag_g_mean, b_mag_g_mean, t_fft_freq_x, t_fft_freq_y, t_fft_freq_z, t_fft_pow_x, t_fft_pow_y, t_fft_pow_z, 
+        t_fft_mag_freq, t_fft_mag_pow, b_fft_freq_x, b_fft_freq_y, b_fft_freq_z, b_fft_pow_x, b_fft_pow_y, b_fft_pow_z, 
+        b_fft_mag_freq, b_fft_mag_pow, t_peaks, b_peaks, t_kurtosis_x, t_kurtosis_y, t_kurtosis_z, b_kurtosis_x, b_kurtosis_y, 
+        b_kurtosis_z, t_skew_x, t_skew_y, t_skew_z, b_skew_x, b_skew_y, b_skew_z) 
     
 }
 
 
 temporary_features <- magic_result_as_dataframe()
-
-
-# Remove the beginning and end of each subject -> the window width can't be respected for these moments
-final_features <- temporary_features %>% dplyr::filter(subject == 'first_subject_id')
-final_features <- final_features[1:(nrow(final_features)-((window_width/2) + 1)),]
-
-for (i in unique (temporary_features %>% dplyr::filter(subject != 'first_subject_id') %>% dplyr::filter(subject != 'last_subject_id'))) 
-{
-  subject_features <- temporary_features %>% dplyr::filter(subject == i)
-  subject_features <- subject_features[((window_width/2) + 1):(nrow(subject_features)-((window_width/2) + 1))]
-  final_features <- rbind(final_features, subject_features)
-}
-
-subject_features <- temporary_features %>% dplyr::filter(subject == 'last_subject_id')
-final_features <- rbind(final_features, subject_features[((window_width/2) + 1):nrow(subject_features),])
